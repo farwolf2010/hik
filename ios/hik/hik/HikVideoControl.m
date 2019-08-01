@@ -393,13 +393,19 @@ VPRecordInfo *recordInfo;
         if(_playBackManager)
             [_playBackManager resumePlayBack];
     }
+ 
     
 }
 
 
-- (void)realPlayCallBack:(PLAY_STATE)playState realManager:(RealPlayManager *)realPlayManager{
+- (void)realPlayCallBack:(PLAY_STATE)playState realManager:( RealPlayManager *)realPlayManager{
      self.playState=playState;
      [self.controller fireEvent:@"playState" params:@{@"state":@(playState)}];
+}
+
+- (void)realPlayCallBackEx:(PLAY_STATE)playState realManager:(RealPlayManagerEx *)realPlayManager{
+    self.playState=playState;
+    [self.controller fireEvent:@"playState" params:@{@"state":@(playState)}];
 }
 
 #pragma mark  -----程序进入后台和变为活跃时的通知实现

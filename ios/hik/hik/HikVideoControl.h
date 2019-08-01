@@ -8,11 +8,13 @@
 #import <UIKit/UIKit.h>
 #import <WeexSDK/WeexSDK.h>
 #import "PlayView.h"
-#import "Mcu_sdk/PlayBackManager.h"
-#import "Mcu_sdk/RealPlayManager.h"
+#import <Mcu_sdk/PlayBackManager.h>
+#import <Mcu_sdk/RealPlayManagerEx.h>
+#import <Mcu_sdk/RealPlayManager.h>
 
 
-@interface HikVideoControl : UIViewController<PlayBackManagerDelegate,RealPlayManagerDelegate>
+
+@interface HikVideoControl : UIViewController<PlayBackManagerDelegate,RealPlayManagerDelegate,RealPlayManagerExDelegate>
 @property (nonatomic, retain) PlayBackManager   *playBackManager;
 @property (nonatomic, retain) RealPlayManager   *realManager;
 @property (nonatomic) int    videoType;
