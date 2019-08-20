@@ -35,10 +35,14 @@ import com.taobao.weex.ui.action.BasicComponentData;
 import com.taobao.weex.ui.component.WXComponent;
 import com.taobao.weex.ui.component.WXVContainer;
 
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Function1;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 @WeexComponent(name="hikvideo")
 public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolder.Callback{
@@ -155,6 +159,82 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     @JSMethod
     public void enterFullScreen(){
         enterWindowFullscreen();
+    }
+
+
+    @JSMethod
+    public void queryRecordInfo(HashMap m,final JSCallback callback) {
+        final String date=m.get("date")+"";
+        final String id=m.get("id")+"";
+        getCameraInfo(id,new JSCallback() {
+            @O erride
+            public void invoke(Object data) {
+
+                HashMap m=(HashMap)data;
+                CameraInfo mCameraInfo = (CameraInfo)m.get("info");
+                int[] mRecordPos = SDKUtil.processStorageType(mCameraInfo);
+                String[] mGuids = SDKUtil.processGuid(mCameraInfo);
+                int mStorageType=0;
+                if (null != mRecordPos && 0 < mRecordPos.length) {
+                    mStorageType = mRecordPos[0];
+                }
+                String mGuid="";
+                if (null != mGuids && 0 < mGuids.length) {
+                    mGuid = mGuids[0];
+                }
+                final Calendar calendar = Calendar.getInstance();
+                calendar.setTime(DateTool.getDate(date,"yyyy-MM-dd"));
+//        calendar.setTime();
+                int year = calendar.get(Calendar.YEAR);
+                int month = calendar.get(Calendar.MONTH);
+                int day = calendar.get(Calendar.DAY_OF_MONTH);
+                Calendar queryStartTime = Calendar.getInstance();
+                Calendar queryEndTime = Calendar.getInstance();
+                queryStartTime.set(year, month, day, 0, 0, 0);
+                queryEndTime.set(year, month, day, 23, 59, 59);
+                VMSNetSDK.getInstance().queryRecordSegment(PLAY_WINDOW_ONE, mCameraInfo, queryStartTime, queryEndTime, mStorageType, mGuid, new OnVMSNetSDKBusiness() {
+                    @Override
+                    public void onFailure() {
+
+                    }
+
+                    @Override
+                    public void onSuccess(Object obj) {
+                        if (obj instanceof RecordInfo) {
+                            RecordInfo  mRecordInfo = ((RecordInfo) obj);
+                            if (null != mRecordInfo.getSegmentList() && 0 < mRecordInfo.getSegmentList().size()) {
+                                List l=  Linq4j.asEnumerable( mRecordInfo.getSegmentList()).select(new Function1<RecordSegment, HashMap>() {
+                                    @Override
+                                    public HashMap apply(RecordSegment recordSegment) {
+                                        HashMap m=new HashMap();
+                                        String start=DateTool.Pattern(SDKUtil.convertTimeString(recordSegment.getBeginTime()).getTime(),"yyyy-MM-dd HH:mm:ss");
+                                        String end=DateTool.Pattern(SDKUtil.convertTimeString(recordSegment.getEndTime()).getTime(),"yyyy-MM-dd HH:mm:ss");
+                                        m.put("start",start);
+                                        m.put("end",end);
+                                        return m;
+                                    }
+                                }).toList();
+                                HashMap m=new HashMap();
+                                m.put("list",l);
+                                callback.invoke(m);
+
+                            } else {
+
+                            }
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void invokeAndKeepAlive(Object data) {
+
+            }
+        });
+
+
+
+
     }
 
     @JSMethod
@@ -414,7 +494,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     /**
      * 获取监控点详细信息
      */
-    private void getCameraInfo(String id,final JSCallback callback) {
+    public void getCameraInfo(String id,final JSCallback callback) {
 
 
         VMSNetSDK.getInstance().getPlayBackCameraInfo(PLAY_WINDOW_ONE, id, new OnVMSNetSDKBusiness() {
