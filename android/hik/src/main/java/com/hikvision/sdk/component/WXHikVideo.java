@@ -5,18 +5,25 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
+import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import com.farwolf.util.ActivityManager;
 import com.farwolf.util.DateTool;
+import com.farwolf.util.ScreenTool_;
 import com.farwolf.weex.annotation.WeexComponent;
 import com.farwolf.weex.util.Const;
+import com.farwolf.weex.view.LoadingView;
 import com.hik.mcrsdk.rtsp.RtspClient;
 import com.hikvision.sdk.VMSNetSDK;
 import com.hikvision.sdk.consts.SDKConstant;
@@ -52,6 +59,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     int videoType=0;
 
     String recordVidepath;
+    LoadingView loading;
 
     String id;
     String date;
@@ -82,6 +90,15 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
         container.setBackgroundColor(Color.BLACK);
         videoView=c;
         this.container=container;
+        LoadingView l=new LoadingView(context);
+        int size=ScreenTool_.getInstance_(context).toDip(30);
+        FrameLayout.LayoutParams lpx=new FrameLayout.LayoutParams(size,size);
+        lpx.gravity= Gravity.CENTER;
+        l.setLayoutParams(lpx);
+        l.setStyle(LoadingView.BallSpinFadeLoader);
+        f.addView(l);
+        l.setVisibility(View.GONE);
+        loading=l;
         return f;
     }
 
@@ -167,7 +184,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
         final String date=m.get("date")+"";
         final String id=m.get("id")+"";
         getCameraInfo(id,new JSCallback() {
-            @O erride
+            @Override
             public void invoke(Object data) {
 
                 HashMap m=(HashMap)data;
@@ -242,6 +259,19 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
         quitWindowFullscreen();
     }
 
+    public void   hideStausbar(boolean enable) {
+        Activity ac=(Activity)getInstance().getContext();
+        Window w=ac.getWindow();
+        if (enable) {
+            WindowManager.LayoutParams attrs = w.getAttributes();
+            attrs.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
+           w.setAttributes(attrs);
+        } else {
+            WindowManager.LayoutParams attrs = w.getAttributes();
+            attrs.flags &= ~WindowManager.LayoutParams.FLAG_FULLSCREEN;
+            w.setAttributes(attrs);
+        }
+    }
     //全屏
 
     public void enterWindowFullscreen() {
@@ -259,6 +289,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
             m.put("id",this.id);
             m.put("level",this.level);
             realPlay(m,null);
+             hideStausbar(true);
 //            setStateAndMode(currentState, MODE_WINDOW_FULLSCREEN);
 
     }
@@ -311,6 +342,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
         m.put("id",this.id);
         m.put("level",this.level);
         realPlay(m,null);
+        hideStausbar(false);
     }
 
     @Override
@@ -393,9 +425,35 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
         }
     }
 
+
+    Handler handler = new Handler() {
+        @Override
+        public void handleMessage(final Message msg) {
+
+            ((Activity)getContext()).runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    String m=msg.obj+"";
+                    loading.setVisibility(showLoading?View.VISIBLE:View.GONE);
+//                    loading.setVisibility(View.VISIBLE);
+                }
+            });
+            super.handleMessage(msg);
+        }
+    };
+
+    boolean showLoading=false;
+
+    public void sendMsg(boolean m){
+        showLoading=m;
+        handler.sendEmptyMessage(0);
+
+    }
+
     @JSMethod
     public void realPlay(final HashMap param,final JSCallback state){
 
+        sendMsg(true);
         videoType=0;
         final String id=param.get("id")+"";
         final String level=param.get("level")+"";
@@ -417,6 +475,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
                         m.put("err",1);
                         if(state!=null)
                         state.invoke(m);
+                        sendMsg(false);
                     }
 
                     @Override
@@ -425,6 +484,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
                         m.put("err",0);
                         if(state!=null)
                         state.invoke(m);
+                        sendMsg(false);
                     }
                 });
                 Looper.loop();
@@ -538,6 +598,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
         String date=param.get("date")+"";
         this.id=id;
         this.date=date;
+        sendMsg(true);
         this.getCameraInfo(id, new JSCallback() {
             @Override
             public void invoke(Object data) {
@@ -561,6 +622,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
                                 HashMap m=new HashMap<>();
                                 m.put("err",1);
                                 callback.invoke(m);
+                                sendMsg(false);
                             }
 
                             @Override
@@ -570,6 +632,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
                                 m.put("finish",false);
                                 m.put("err",0);
                                 callback.invoke(m);
+                                sendMsg(false);
                             }
 
                             @Override
