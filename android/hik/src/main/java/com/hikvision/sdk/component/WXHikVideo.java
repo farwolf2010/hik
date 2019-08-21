@@ -96,7 +96,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
         lpx.gravity= Gravity.CENTER;
         l.setLayoutParams(lpx);
         l.setStyle(LoadingView.BallSpinFadeLoader);
-        f.addView(l);
+        container.addView(l);
         l.setVisibility(View.GONE);
         loading=l;
         return f;
@@ -273,7 +273,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
         }
     }
     //全屏
-
+    LoadingView decordLoading;
     public void enterWindowFullscreen() {
               this.isFullScreen=true;
             ViewGroup vp = (ViewGroup) container.getParent();
@@ -290,6 +290,27 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
             m.put("level",this.level);
             realPlay(m,null);
              hideStausbar(true);
+
+
+//             if(decordLoading==null){
+//                 decordLoading=new LoadingView(ActivityManager.getInstance().getCurrentActivity());
+//
+//             }
+//             else{
+//
+//
+//             }
+             container.removeView(loading);
+            int size=ScreenTool_.getInstance_(ActivityManager.getInstance().getCurrentActivity()).toDip(30);
+            FrameLayout.LayoutParams lpx=new FrameLayout.LayoutParams(size,size);
+            lpx.gravity= Gravity.CENTER;
+            loading.setLayoutParams(lpx);
+            loading.setStyle(LoadingView.BallSpinFadeLoader);
+            loading.setVisibility(View.GONE);
+            container.addView(loading);
+
+
+
 //            setStateAndMode(currentState, MODE_WINDOW_FULLSCREEN);
 
     }
@@ -343,6 +364,8 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
         m.put("level",this.level);
         realPlay(m,null);
         hideStausbar(false);
+        if(loading!=null)
+            loading.setVisibility(View.GONE);
     }
 
     @Override
