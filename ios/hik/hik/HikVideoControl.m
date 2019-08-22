@@ -287,7 +287,7 @@ VPRecordInfo *recordInfo;
       NSString *min=[self get10:seg.dwMinute];
       NSString *sec=[self get10:seg.dwSecond];
     NSString *y= [[[[[year add:@"-"] add:month]add:@"-"]add:day] add:@" "];
-        NSString *d= [[[[hour add:@"-"] add:min]add:@"-"]add:sec] ;
+    NSString *d= [[[[hour add:@":"] add:min]add:@":"]add:sec] ;
     return [y add:d];
 }
 
