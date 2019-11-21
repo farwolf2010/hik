@@ -68,7 +68,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     boolean isFullScreen;
     CustomSurfaceView videoView;
     FrameLayout container;
-
+    RecordInfo  globalRecordInfo;
 
     private int PLAY_WINDOW_ONE = 1;
 
@@ -109,7 +109,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
             @Override
             public void onClick(View view) {
                 if(isFullScreen())
-                quitWindowFullscreen();
+                    quitWindowFullscreen();
             }
         });
 //        mCamera = (SubResourceNodeBean) ((Activity) getInstance().getContext()).getIntent().getSerializableExtra(Constants.IntentKey.CAMERA);
@@ -120,11 +120,11 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     public void play(HashMap param,final JSCallback callback){
 
         String type=param.get("type")+"";
-         if("real".equals(type)){
-             this.realPlay(param,callback);
-         }else{
-             this.playBack(param,callback);
-         }
+        if("real".equals(type)){
+            this.realPlay(param,callback);
+        }else{
+            this.playBack(param,callback);
+        }
     }
 
     @JSMethod
@@ -141,11 +141,11 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     @JSMethod
     public void startRecord(JSCallback callback){
         String filename="Video" + System.currentTimeMillis() + ".mp4";
-       this.recordVidepath=   FileUtils.getVideoDirPath().getAbsolutePath()+"/"+filename;
+        this.recordVidepath=   FileUtils.getVideoDirPath().getAbsolutePath()+"/"+filename;
 
         int recordOpt = VMSNetSDK.getInstance().startLiveRecordOpt(PLAY_WINDOW_ONE, FileUtils.getVideoDirPath().getAbsolutePath(), filename);
-          HashMap m=new HashMap();
-          int code=0;
+        HashMap m=new HashMap();
+        int code=0;
         switch (recordOpt) {
             case SDKConstant.LiveSDKConstant.SD_CARD_UN_USABLE:
                 code=1;
@@ -154,7 +154,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
                 code=2;
                 break;
             case SDKConstant.LiveSDKConstant.RECORD_FAILED:
-               code=3;
+                code=3;
 
                 break;
             case SDKConstant.LiveSDKConstant.RECORD_SUCCESS:
@@ -183,6 +183,8 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     public void queryRecordInfo(HashMap m,final JSCallback callback) {
         final String date=m.get("date")+"";
         final String id=m.get("id")+"";
+        this.id=id;
+        this.date=date; //格式yyyy-MM-dd
         getCameraInfo(id,new JSCallback() {
             @Override
             public void invoke(Object data) {
@@ -224,8 +226,9 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
                                     @Override
                                     public HashMap apply(RecordSegment recordSegment) {
                                         HashMap m=new HashMap();
-                                        String start=DateTool.Pattern(SDKUtil.convertTimeString(recordSegment.getBeginTime()).getTime(),"yyyy-MM-dd HH:mm:ss");
-                                        String end=DateTool.Pattern(SDKUtil.convertTimeString(recordSegment.getEndTime()).getTime(),"yyyy-MM-dd HH:mm:ss");
+                                        String start=recordSegment.getBeginTime().replace("T", " ").substring(0, 19);
+                                        String end=recordSegment.getEndTime().replace("T", " ").substring(0, 19);
+//                                        String end=DateTool.Pattern(SDKUtil.convertTimeString(recordSegment.getEndTime()).getTime(),"yyyy-MM-dd HH:mm:ss");
                                         m.put("start",start);
                                         m.put("end",end);
                                         return m;
@@ -234,7 +237,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
                                 HashMap m=new HashMap();
                                 m.put("list",l);
                                 callback.invoke(m);
-
+                                globalRecordInfo = mRecordInfo;
                             } else {
 
                             }
@@ -265,7 +268,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
         if (enable) {
             WindowManager.LayoutParams attrs = w.getAttributes();
             attrs.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
-           w.setAttributes(attrs);
+            w.setAttributes(attrs);
         } else {
             WindowManager.LayoutParams attrs = w.getAttributes();
             attrs.flags &= ~WindowManager.LayoutParams.FLAG_FULLSCREEN;
@@ -275,21 +278,21 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     //全屏
     LoadingView decordLoading;
     public void enterWindowFullscreen() {
-              this.isFullScreen=true;
-            ViewGroup vp = (ViewGroup) container.getParent();
-            if (vp != null)
-                vp.removeView(container);
-            this.parent=vp;
-            ViewGroup decorView = (ViewGroup) (ActivityManager.getInstance().getCurrentActivity()).getWindow().getDecorView();
-            //.findViewById(Window.ID_ANDROID_CONTENT);
-            vp.setBackgroundColor(Color.RED);
-            SET_LANDSCAPE(getContext());
-            decorView.addView(container, new FrameLayout.LayoutParams(-1, -1));
-            HashMap m=new HashMap();
-            m.put("id",this.id);
-            m.put("level",this.level);
-            realPlay(m,null);
-             hideStausbar(true);
+        this.isFullScreen=true;
+        ViewGroup vp = (ViewGroup) container.getParent();
+        if (vp != null)
+            vp.removeView(container);
+        this.parent=vp;
+        ViewGroup decorView = (ViewGroup) (ActivityManager.getInstance().getCurrentActivity()).getWindow().getDecorView();
+        //.findViewById(Window.ID_ANDROID_CONTENT);
+        vp.setBackgroundColor(Color.RED);
+        SET_LANDSCAPE(getContext());
+        decorView.addView(container, new FrameLayout.LayoutParams(-1, -1));
+        HashMap m=new HashMap();
+        m.put("id",this.id);
+        m.put("level",this.level);
+        realPlay(m,null);
+        hideStausbar(true);
 
 
 //             if(decordLoading==null){
@@ -300,14 +303,14 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
 //
 //
 //             }
-             container.removeView(loading);
-            int size=ScreenTool_.getInstance_(ActivityManager.getInstance().getCurrentActivity()).toDip(30);
-            FrameLayout.LayoutParams lpx=new FrameLayout.LayoutParams(size,size);
-            lpx.gravity= Gravity.CENTER;
-            loading.setLayoutParams(lpx);
-            loading.setStyle(LoadingView.BallSpinFadeLoader);
-            loading.setVisibility(View.GONE);
-            container.addView(loading);
+        container.removeView(loading);
+        int size=ScreenTool_.getInstance_(ActivityManager.getInstance().getCurrentActivity()).toDip(30);
+        FrameLayout.LayoutParams lpx=new FrameLayout.LayoutParams(size,size);
+        lpx.gravity= Gravity.CENTER;
+        loading.setLayoutParams(lpx);
+        loading.setStyle(LoadingView.BallSpinFadeLoader);
+        loading.setVisibility(View.GONE);
+        container.addView(loading);
 
 
 
@@ -317,7 +320,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
 
     public boolean isFullScreen() {
         ViewGroup decorView = (ViewGroup) (ActivityManager.getInstance().getCurrentActivity()).getWindow().getDecorView();
-       return container.getParent()==decorView;
+        return container.getParent()==decorView;
 
     }
 
@@ -380,11 +383,11 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     @JSMethod
     public void control(HashMap param){
         final int command=Integer.parseInt(param.get("command")+"");
-          int speed=5;
-          if(param.containsKey("speed")){
-              speed=  Integer.parseInt(param.get("speed")+"");
-          }
-         final  int tempint=speed;
+        int speed=5;
+        if(param.containsKey("speed")){
+            speed=  Integer.parseInt(param.get("speed")+"");
+        }
+        final  int tempint=speed;
 
 
         final boolean end=Boolean.parseBoolean(param.get("end")+"");
@@ -413,19 +416,19 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     @JSMethod
     public void audio(boolean audio){
 
-       if(videoType==0){
-           if(audio){
-               VMSNetSDK.getInstance().startLiveAudioOpt(PLAY_WINDOW_ONE);
-           }else{
-               VMSNetSDK.getInstance().stopLiveAudioOpt(PLAY_WINDOW_ONE);
-           }
-       }else{
-           if(audio){
-               VMSNetSDK.getInstance().startPlayBackAudioOpt(PLAY_WINDOW_ONE);
-           }else{
-               VMSNetSDK.getInstance().stopPlayBackAudioOpt(PLAY_WINDOW_ONE);
-           }
-       }
+        if(videoType==0){
+            if(audio){
+                VMSNetSDK.getInstance().startLiveAudioOpt(PLAY_WINDOW_ONE);
+            }else{
+                VMSNetSDK.getInstance().stopLiveAudioOpt(PLAY_WINDOW_ONE);
+            }
+        }else{
+            if(audio){
+                VMSNetSDK.getInstance().startPlayBackAudioOpt(PLAY_WINDOW_ONE);
+            }else{
+                VMSNetSDK.getInstance().stopPlayBackAudioOpt(PLAY_WINDOW_ONE);
+            }
+        }
     }
 
 
@@ -497,7 +500,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
                         HashMap m=new HashMap<>();
                         m.put("err",1);
                         if(state!=null)
-                        state.invoke(m);
+                            state.invoke(m);
                         sendMsg(false);
                     }
 
@@ -506,7 +509,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
                         HashMap m=new HashMap<>();
                         m.put("err",0);
                         if(state!=null)
-                        state.invoke(m);
+                            state.invoke(m);
                         sendMsg(false);
                     }
                 });
@@ -593,7 +596,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
                     HashMap m=new HashMap();
                     m.put("info",mCameraInfo);
                     if(callback!=null)
-                    callback.invoke(m);
+                        callback.invoke(m);
                 }
             }
         });
@@ -602,85 +605,96 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
 
     @JSMethod
     public void updatePlayBack(final HashMap param,final JSCallback callback){
+        sendMsg(true);
+        String date = param.get("time")+"";
+        Date fdate= DateTool.getDate(date,"yyyy-MM-dd HH:mm:ss");
+        Date edate= DateTool.getDate(date.substring(0, 11)+"23:59:59","yyyy-MM-dd HH:mm:ss");
+        final  Calendar start=Calendar.getInstance();
+        final  Calendar end=Calendar.getInstance();
+        start.setTime(fdate);
+        end.setTime(edate);
+        VMSNetSDK.getInstance().startPlayBackOpt(PLAY_WINDOW_ONE, videoView, globalRecordInfo.getSegmentListPlayUrl(), start, end, new OnVMSNetSDKBusiness() {
+            @Override
+            public void onFailure() {
+//                mMessageHandler.sendEmptyMessage(START_FAILURE);
+                HashMap m=new HashMap<>();
+                m.put("err",1);
+                callback.invoke(m);
+                sendMsg(false);
+            }
 
-       this.playBack(param,callback);
+            @Override
+            public void onSuccess(Object obj) {
+//                mMessageHandler.sendEmptyMessage(START_SUCCESS);
+                HashMap m=new HashMap<>();
+                m.put("finish",false);
+                m.put("err",0);
+                callback.invoke(m);
+                sendMsg(false);
+            }
+
+            @Override
+            public void onStatusCallback(int status) {
+
+                if (status == RtspClient.RTSPCLIENT_MSG_PLAYBACK_FINISH) {
+                    HashMap m=new HashMap<>();
+                    m.put("err",0);
+                    m.put("finish",true);
+                    callback.invoke(m);
+                }
+            }
+        });
     }
 
     @JSMethod
     public void getPlayTime(JSCallback callback){
         long osd = VMSNetSDK.getInstance().getOSDTimeOpt(PLAY_WINDOW_ONE);
-          HashMap m=new HashMap();
-          m.put("time",osd);
-          callback.invoke(m);
-
+        HashMap m=new HashMap();
+        m.put("time",osd);
+        callback.invoke(m);
     }
 
 
     public void playBack(final HashMap param,final JSCallback callback){
-        String id=param.get("id")+"";
+//        String id=param.get("id")+"";
         String date=param.get("date")+"";
-        this.id=id;
-        this.date=date;
         sendMsg(true);
-        this.getCameraInfo(id, new JSCallback() {
+        Date fdate= DateTool.getDate(date,"yyyy-MM-dd HH:mm:ss");
+        Date edate= DateTool.getDate(date.substring(0, 11)+"23:59:59","yyyy-MM-dd HH:mm:ss");
+        final  Calendar start=Calendar.getInstance();
+        final  Calendar end=Calendar.getInstance();
+        start.setTime(fdate);
+        end.setTime(edate);
+
+        VMSNetSDK.getInstance().startPlayBackOpt(PLAY_WINDOW_ONE, videoView, globalRecordInfo.getSegmentListPlayUrl(), start, end, new OnVMSNetSDKBusiness() {
             @Override
-            public void invoke(Object data) {
-               final  CameraInfo info=(CameraInfo)((HashMap)data).get("info");
-               final String date=param.get("date")+"";
-                queryRecordSegment(date, info, new JSCallback() {
-                    @Override
-                    public void invoke(Object data) {
-                        final  CameraInfo info=(CameraInfo)((HashMap)data).get("info");
-                        final  RecordInfo recordInfo=(RecordInfo)((HashMap)data).get("recordInfo");
-                        Date fdate= DateTool.getDate(date,"yyyy-MM-dd HH:mm:ss");
-                        final  Calendar start=Calendar.getInstance();
-                        final  Calendar end=Calendar.getInstance();
-                         start.setTime(fdate);
-                         end.setTime(fdate);
-
-                        VMSNetSDK.getInstance().startPlayBackOpt(PLAY_WINDOW_ONE, videoView, recordInfo.getSegmentListPlayUrl(), start, end, new OnVMSNetSDKBusiness() {
-                            @Override
-                            public void onFailure() {
+            public void onFailure() {
 //                mMessageHandler.sendEmptyMessage(START_FAILURE);
-                                HashMap m=new HashMap<>();
-                                m.put("err",1);
-                                callback.invoke(m);
-                                sendMsg(false);
-                            }
-
-                            @Override
-                            public void onSuccess(Object obj) {
-//                mMessageHandler.sendEmptyMessage(START_SUCCESS);
-                                HashMap m=new HashMap<>();
-                                m.put("finish",false);
-                                m.put("err",0);
-                                callback.invoke(m);
-                                sendMsg(false);
-                            }
-
-                            @Override
-                            public void onStatusCallback(int status) {
-
-                                if (status == RtspClient.RTSPCLIENT_MSG_PLAYBACK_FINISH) {
-                                    HashMap m=new HashMap<>();
-                                    m.put("err",0);
-                                    m.put("finish",true);
-                                    callback.invoke(m);
-                                }
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void invokeAndKeepAlive(Object data) {
-
-                    }
-                });
+                HashMap m=new HashMap<>();
+                m.put("err",1);
+                callback.invoke(m);
+                sendMsg(false);
             }
 
             @Override
-            public void invokeAndKeepAlive(Object data) {
+            public void onSuccess(Object obj) {
+//                mMessageHandler.sendEmptyMessage(START_SUCCESS);
+                HashMap m=new HashMap<>();
+                m.put("finish",false);
+                m.put("err",0);
+                callback.invoke(m);
+                sendMsg(false);
+            }
 
+            @Override
+            public void onStatusCallback(int status) {
+
+                if (status == RtspClient.RTSPCLIENT_MSG_PLAYBACK_FINISH) {
+                    HashMap m=new HashMap<>();
+                    m.put("err",0);
+                    m.put("finish",true);
+                    callback.invoke(m);
+                }
             }
         });
 
@@ -711,7 +725,7 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     @JSMethod
     public void pause(){
         if(videoType==0)
-        VMSNetSDK.getInstance().pausePlayBackOpt(PLAY_WINDOW_ONE);
+            VMSNetSDK.getInstance().pausePlayBackOpt(PLAY_WINDOW_ONE);
         else{
             VMSNetSDK.getInstance().pauseLocalVideo();
         }
