@@ -31,7 +31,7 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    api project(':farwolf.weex')
+    api 'com.farwolf.weexplus:farwolf.weex:latest.integration'
     configurations {
         all*.exclude group: 'com.google.code.gson'
     }

@@ -331,21 +331,23 @@ public class WXHikVideo extends WXComponent<FrameLayout> implements SurfaceHolde
     }
 
     public static Activity scanForActivity(Context context) {
-        if (context instanceof Activity) {
-            Activity a = (Activity) context;
-            if (a.getParent() != null)
-                return a.getParent();
-            else
-                return a;
-        } else if (context instanceof ContextWrapper) {
-            return scanForActivity(((ContextWrapper) context).getBaseContext());
-        }
-        throw new IllegalStateException("context得不到activity");
+//        if (context instanceof Activity) {
+//            Activity a = (Activity) context;
+//            if (a.getParent() != null)
+//                return a.getParent();
+//            else
+//                return a;
+//        } else if (context instanceof ContextWrapper) {
+//            return scanForActivity(((ContextWrapper) context).getBaseContext());
+//        }
+//        throw new IllegalStateException("context得不到activity");
+        return ActivityManager.getInstance().getCurrentActivity();
     }
 
     //横屏
     public static void SET_LANDSCAPE(Context context) {
-        scanForActivity(context).setRequestedOrientation
+        Activity ac=scanForActivity(context);
+        ac.setRequestedOrientation
                 (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     }
 
